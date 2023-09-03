@@ -12,13 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const tabs = await chrome.tabs.query({
-  url: [
-    'https://developer.chrome.com/docs/webstore/*',
-    'https://developer.chrome.com/docs/extensions/*'
-  ]
-});
 
+async function saveAllTabs() {
+  let tabinfos = []
+  const tabs = await chrome.tabs.query({});
+  console.log("collect all tabs information");
+  for (const _tab of tabs) {
+    if (_tab.hasOwnProperty('title')) {
+      tabinfos.push({title:_tab.title, url:_tab.url})
+    }
+  }
+  let node = await chrome.bookmarks.search({title: "saved_tabs"})
+  if (node.length == 0) {
+    node = await chrome.bookmarks.create({parentId:"1", title: "saved_tabs"})
+  } else {
+    node = node[0]
+  }
+  let saved_tabs_id = node.id
+  let new_folder = Date.now().toString()
+  let new_folder_node = await chrome.bookmarks.create({parentId: saved_tabs_id, title: new_folder})
+  let new_folder_id = new_folder_node.id
+  
+  console.log("begin saving the tabs");
+  for (const tabinfo of tabinfos) {
+    await chrome.bookmarks.create({parentId: new_folder_id, title: tabinfo.title, url: tabinfo.url})
+  }
+  console.log("save tabs complete");
+}
+
+await saveAllTabs()
+
+if (false) {
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Collator
 const collator = new Intl.Collator();
 tabs.sort((a, b) => collator.compare(a.title, b.title));
@@ -51,3 +75,5 @@ button.addEventListener('click', async () => {
     await chrome.tabGroups.update(group, { title: 'DOCS' });
   }
 });
+
+}
